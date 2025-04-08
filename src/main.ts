@@ -1,0 +1,54 @@
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+import { WinstonModule } from "nest-winston";
+import { winstonConfig } from "./common/logger";
+import { Logger, ValidationPipe } from "@nestjs/common";
+import { AllExceptionsFilter } from "./common/error/error.handling";
+import * as cookieParser from "cookie-parser";
+import { ResponseFormatInterceptor } from "./common/interceptor/response-format.interceptor";
+import { seedSuperAdmin } from "./common/scripts/seed-admin";
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule, {
+    logger: WinstonModule.createLogger(winstonConfig),
+  });
+
+  const options = new DocumentBuilder()
+    .setTitle("Medicine")
+    .setDescription("API documentation for Medicine platform")
+    .addBearerAuth(
+      {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+        in: "header",
+      },
+      "token"
+    )
+    .build();
+  app.setGlobalPrefix("api");
+
+  const document = SwaggerModule.createDocument(app, options);
+  SwaggerModule.setup("api/docs", app, document);
+
+  app.setGlobalPrefix("api");
+  app.useGlobalFilters(new AllExceptionsFilter());
+  app.enableCors({
+    origin: "*",
+  });
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+    })
+  );
+  app.useGlobalInterceptors(new ResponseFormatInterceptor());
+
+  app.use(cookieParser());
+  await seedSuperAdmin();
+  const PORT = process.env.PORT || 3030;
+  await app.listen(PORT, () => {
+    console.log("Server running port at", PORT);
+  });
+}
+bootstrap();

@@ -1,0 +1,45 @@
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Admin Login Credentials</title>
+	</head>
+	<body
+		style="font-family: Arial, sans-serif; line-height: 1.6; color: #333333; margin: 0; padding: 0;"
+	>
+		<div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+			<div style="background-color: #0056b3; padding: 20px; text-align: center;">
+				<h1 style="color: white; margin: 0; font-size: 24px;">Admin Login Credentials</h1>
+			</div>
+			<div style="padding: 20px; background-color: #f9f9f9; border: 1px solid #dddddd;">
+				<p style="margin: 5px 0;">Hello,</p>
+				<p style="margin: 5px 0;">An admin account has been created for you. Please use the
+					following credentials to log in to the admin dashboard:</p>
+
+				<div
+					style="background-color: white; border: 1px solid #dddddd; padding: 15px; margin: 15px 0; border-radius: 4px;"
+				>
+					<p style="margin: 5px 0;"><strong
+							style="display: inline-block; width: 100px;"
+						>Name:</strong>
+						{{user.name}}</p>
+					<p style="margin: 5px 0;"><strong
+							style="display: inline-block; width: 100px;"
+						>Email:</strong>
+						{{user.email}}</p>
+					<p style="margin: 5px 0;"><strong
+							style="display: inline-block; width: 100px;"
+						>Password:</strong>
+						{{user.password}}</p>
+				</div>
+
+				<p style="margin: 5px 0;">For security reasons, we recommend changing your password
+					after your first login.</p>
+			</div>
+			<div style="text-align: center; padding: 15px; font-size: 12px; color: #666666;">
+				<p style="margin: 5px 0;">This is an automated message. Please do not reply to this
+					email.</p>
+			</div>
+		</div>
+	</body>
+</html>
