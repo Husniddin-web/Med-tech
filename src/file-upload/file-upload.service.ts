@@ -16,7 +16,7 @@ export class FileUploadService {
     "image/jpeg",
     "image/png",
     "image/jpg",
-    "image/svg",
+    "image/svg+xml",
     "application/pdf",
   ];
 
