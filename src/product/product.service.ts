@@ -51,6 +51,7 @@ export class ProductService {
   async findAllForAdmin() {
     return await this.prisma.product.findMany({
       include: {
+        Order: true,
         translations: true,
         category: { select: { translations: true } },
       },
@@ -85,11 +86,11 @@ export class ProductService {
     });
   }
 
-  // ✅ Get a single product by ID with optional language filtering
   async findOne(id: number, languageId?: number) {
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: {
+        Order: true,
         translations: languageId ? { where: { languageId } } : true,
         category: {
           include: {
@@ -99,7 +100,6 @@ export class ProductService {
       },
     });
     if (!product) throw new NotFoundException(`Product #${id} not found`);
-
     const translation = product.translations[0] || {};
     const categoryTranslation = product.category?.translations[0] || {};
 
@@ -111,43 +111,31 @@ export class ProductService {
       name: translation.name || null,
       description: translation.description || null,
       languageId,
+      order: product.Order,
     };
   }
 
   async update(id: number, dto: UpdateProductDto) {
     await this.findOne(id);
 
-    // Prepare update data
-    const updateData: any = {
-      images: dto.images,
-    };
+    const updateData: any = {};
 
-    if (dto.categoryId) {
-      updateData.categoryId = dto.categoryId;
+    if (!dto) {
+      throw new BadRequestException("Nothing is provided");
     }
 
-    // Handle translation updates if provided
-    if (dto.translations && dto.translations.length > 0) {
-      for (const translation of dto.translations) {
-        await this.prisma.productTranslation.upsert({
-          where: {
-            productId_languageId: {
-              productId: id,
-              languageId: translation.languageId,
-            },
-          },
-          update: {
-            name: translation.name,
-            description: translation.description,
-          },
-          create: {
-            languageId: translation.languageId,
-            name: translation.name,
-            description: translation.description,
-            productId: id,
-          },
-        });
+    if (dto.images) {
+      updateData.images = dto.images;
+    }
+
+    if (dto.categoryId) {
+      const isExit = await this.prisma.category.findUnique({
+        where: { id: dto.categoryId },
+      });
+      if (!isExit) {
+        throw new NotFoundException("Category id is not found");
       }
+      updateData.categoryId = dto.categoryId;
     }
 
     return await this.prisma.product.update({

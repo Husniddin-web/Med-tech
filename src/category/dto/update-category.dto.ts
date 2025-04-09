@@ -4,18 +4,11 @@ import { Type } from "class-transformer";
 import { CreateCategoryTranslationDto } from "./category-translation.dto";
 
 export class UpdateCategoryDto {
-	@ApiPropertyOptional({
-		description: "Updated category logo file",
-		type: "string",
-		format: "binary",
-	})
-	@IsOptional()
-	logo?: any;
-
-	@ApiPropertyOptional({
-		description: "Updated category translations",
-		type: [CreateCategoryTranslationDto],
-	})
-	@IsOptional()
-	translations?: CreateCategoryTranslationDto[];
+  @ApiPropertyOptional({
+    description: "Updated category logo file",
+    type: "string",
+    format: "binary",
+  })
+  @IsOptional()
+  logo?: any;
 }
