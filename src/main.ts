@@ -2,7 +2,7 @@ import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { WinstonModule } from "nest-winston";
 import { winstonConfig } from "./common/logger";
-import { Logger, ValidationPipe } from "@nestjs/common";
+import { BadRequestException, Logger, ValidationPipe } from "@nestjs/common";
 import { AllExceptionsFilter } from "./common/error/error.handling";
 import * as cookieParser from "cookie-parser";
 import { ResponseFormatInterceptor } from "./common/interceptor/response-format.interceptor";
@@ -35,8 +35,23 @@ async function bootstrap() {
   app.setGlobalPrefix("api");
   app.useGlobalFilters(new AllExceptionsFilter());
   app.enableCors({
-    origin: "*",
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://localhost:3002",
+        "https://med-tech-next.netlify.app",
+      ];
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new BadRequestException("Not allowed by CORS"));
+      }
+    },
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true,
   });
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
