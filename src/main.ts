@@ -38,7 +38,9 @@ async function bootstrap() {
     origin: (origin, callback) => {
       const allowedOrigins = [
         "http://localhost:5173",
+        "http://localhost:8077",
         "http://localhost:3000",
+        "http://3.122.24.252:3002/api/docs",
         "http://localhost:3002",
         "https://med-tech-next.netlify.app",
       ];

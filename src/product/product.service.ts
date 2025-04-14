@@ -243,4 +243,43 @@ export class ProductService {
       },
     });
   }
+
+  async getProductByCategory(id: number, languageId: number) {
+    const langisExit = await this.prisma.language.findUnique({
+      where: { id: languageId },
+    });
+
+    if (!langisExit) {
+      throw new NotFoundException(
+        `Languafe is not found with this id ${languageId}`
+      );
+    }
+
+    const products = await this.prisma.product.findMany({
+      where: { categoryId: id },
+      include: {
+        translations: languageId ? { where: { languageId } } : true,
+        category: {
+          include: {
+            translations: languageId ? { where: { languageId } } : true,
+          },
+        },
+      },
+    });
+
+    return products.map((p) => {
+      const translation = p.translations[0] || {};
+      const categoryTranslation = p.category?.translations[0] || {};
+
+      return {
+        id: p.id,
+        categoryId: p.categoryId,
+        categoryName: categoryTranslation.name || null,
+        images: p.images,
+        name: translation.name || null,
+        description: translation.description || null,
+        languageId,
+      };
+    });
+  }
 }
