@@ -6,11 +6,12 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from "@nestjs/common";
 import { OrderService } from "./order.service";
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { UpdateOrderDto } from "./dto/update-order.dto";
-import { ApiOperation } from "@nestjs/swagger";
+import { ApiOperation, ApiQuery } from "@nestjs/swagger";
 
 @Controller("order")
 export class OrderController {
@@ -22,10 +23,14 @@ export class OrderController {
     return this.orderService.create(createOrderDto);
   }
 
-  @ApiOperation({ summary: "Get all  orders" })
   @Get()
-  findAll() {
-    return this.orderService.findAll();
+  @ApiOperation({ summary: "Get all orders" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  findAll(@Query("page") page?: string, @Query("limit") limit?: string) {
+    return this.orderService.findAll(
+      page && limit ? { page: +page, limit: +limit } : undefined
+    );
   }
 
   @ApiOperation({ summary: "Get one by id  order" })

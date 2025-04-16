@@ -20,10 +20,28 @@ export class OrderService {
     });
   }
 
-  findAll() {
-    return this.prisma.order.findMany({
-      include: { product: { include: { translations: true } } },
-    });
+  async findAll(pagination?: { page: number; limit: number }) {
+    const { page, limit } = pagination || {};
+    const skip = page && limit ? (page - 1) * limit : undefined;
+    const take = page && limit ? limit : undefined;
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.order.findMany({
+        include: { product: { include: { translations: true } } },
+        skip,
+        take,
+      }),
+      this.prisma.order.count(),
+    ]);
+
+    return page && limit
+      ? {
+          data,
+          total,
+          page,
+          lastPage: Math.ceil(total / limit),
+        }
+      : data;
   }
 
   async findOne(id: number) {

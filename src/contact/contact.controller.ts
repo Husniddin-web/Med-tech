@@ -6,11 +6,12 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from "@nestjs/common";
 import { ContactService } from "./contact.service";
 import { CreateContactDto } from "./dto/create-contact.dto";
 import { UpdateContactDto } from "./dto/update-contact.dto";
-import { ApiOperation } from "@nestjs/swagger";
+import { ApiOperation, ApiQuery } from "@nestjs/swagger";
 
 @Controller("contact")
 export class ContactController {
@@ -22,10 +23,14 @@ export class ContactController {
     return this.contactService.create(createContactDto);
   }
 
-  @ApiOperation({ summary: "Get all contact" })
   @Get()
-  findAll() {
-    return this.contactService.findAll();
+  @ApiOperation({ summary: "Get all contacts" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  findAll(@Query("page") page?: string, @Query("limit") limit?: string) {
+    return this.contactService.findAll(
+      page && limit ? { page: +page, limit: +limit } : undefined
+    );
   }
 
   @ApiOperation({ summary: "Get  contact by id" })

@@ -11,8 +11,24 @@ export class ContactService {
     return this.prisma.contact.create({ data: createContactDto });
   }
 
-  findAll() {
-    return this.prisma.contact.findMany();
+  async findAll(pagination?: { page: number; limit: number }) {
+    const { page, limit } = pagination || {};
+    const skip = page && limit ? (page - 1) * limit : undefined;
+    const take = page && limit ? limit : undefined;
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.contact.findMany({ skip, take }),
+      this.prisma.contact.count(),
+    ]);
+
+    return page && limit
+      ? {
+          data,
+          total,
+          page,
+          lastPage: Math.ceil(total / limit),
+        }
+      : data;
   }
 
   async findOne(id: number) {

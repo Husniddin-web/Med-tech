@@ -8,6 +8,7 @@ import { CreateProductDto } from "./dto/create-product.dto";
 import { UpdateProductDto } from "./dto/update-product.dto";
 import { UpdateProductTranslationDto } from "./dto/update-translation-product.dto";
 import { CreateProductTranslationDto } from "./dto/create-product-translation.dto";
+import { Prisma } from "@prisma/client";
 
 @Injectable()
 export class ProductService {
@@ -47,30 +48,61 @@ export class ProductService {
       include: { translations: true },
     });
   }
+  async findAllForAdmin(pagination?: { page?: number; limit?: number }) {
+    const { page, limit } = pagination || {};
+    const skip = page && limit ? (page - 1) * limit : undefined;
+    const take = page && limit ? limit : undefined;
 
-  async findAllForAdmin() {
-    return await this.prisma.product.findMany({
-      include: {
-        Order: true,
-        translations: true,
-        category: { select: { translations: true } },
-      },
-    });
-  }
-
-  async findAllForUser(languageId?: number) {
-    const products = await this.prisma.product.findMany({
-      include: {
-        translations: languageId ? { where: { languageId } } : true,
-        category: {
-          include: {
-            translations: languageId ? { where: { languageId } } : true,
+    const [products, total] = await this.prisma.$transaction([
+      this.prisma.product.findMany({
+        skip,
+        take,
+        include: {
+          Order: true,
+          translations: true,
+          category: {
+            select: { translations: true },
           },
         },
-      },
-    });
+      }),
+      this.prisma.product.count(),
+    ]);
 
-    return products.map((p) => {
+    return page && limit
+      ? {
+          data: products,
+          total,
+          page,
+          lastPage: Math.ceil(total / limit),
+        }
+      : products;
+  }
+
+  async findAllForUser(
+    languageId?: number,
+    pagination?: { page?: number; limit?: number }
+  ) {
+    const { page, limit } = pagination || {};
+    const skip = page && limit ? (page - 1) * limit : undefined;
+    const take = page && limit ? limit : undefined;
+
+    const [products, total] = await this.prisma.$transaction([
+      this.prisma.product.findMany({
+        skip,
+        take,
+        include: {
+          translations: languageId ? { where: { languageId } } : true,
+          category: {
+            include: {
+              translations: languageId ? { where: { languageId } } : true,
+            },
+          },
+        },
+      }),
+      this.prisma.product.count(),
+    ]);
+
+    const mapped = products.map((p) => {
       const translation = p.translations[0] || {};
       const categoryTranslation = p.category?.translations[0] || {};
 
@@ -84,6 +116,17 @@ export class ProductService {
         languageId,
       };
     });
+
+    if (page && limit) {
+      return {
+        data: mapped,
+        total,
+        page,
+        lastPage: Math.ceil(total / limit),
+      };
+    }
+
+    return mapped;
   }
 
   async findOne(id: number, languageId?: number) {
@@ -220,54 +263,96 @@ export class ProductService {
     return await this.prisma.product.delete({ where: { id } });
   }
 
-  async searchProductByAnyField(field: string, lang: number) {
-    return await this.prisma.product.findMany({
-      where: {
-        translations: {
-          some: {
-            languageId: lang,
-            OR: [
-              { name: { contains: field, mode: "insensitive" } },
-              { description: { contains: field, mode: "insensitive" } },
-            ],
-          },
+  async searchProductByAnyField(
+    field: string,
+    lang: number,
+    pagination?: { page?: number; limit?: number }
+  ) {
+    const { page, limit } = pagination || {};
+    const skip = page && limit ? (page - 1) * limit : undefined;
+    const take = page && limit ? limit : undefined;
+
+    const whereClause: Prisma.ProductWhereInput = {
+      translations: {
+        some: {
+          languageId: lang,
+          OR: [
+            {
+              name: {
+                contains: field,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            {
+              description: {
+                contains: field,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          ],
         },
       },
-      include: {
-        translations: { where: { languageId: lang } },
-        category: {
-          include: {
-            translations: { where: { languageId: lang } },
+    };
+
+    const [products, total] = await this.prisma.$transaction([
+      this.prisma.product.findMany({
+        where: whereClause,
+        skip,
+        take,
+        include: {
+          translations: { where: { languageId: lang } },
+          category: {
+            include: {
+              translations: { where: { languageId: lang } },
+            },
           },
         },
-      },
-    });
+      }),
+      this.prisma.product.count({ where: whereClause }),
+    ]);
+
+    return page && limit
+      ? {
+          data: products,
+          total,
+          page,
+          lastPage: Math.ceil(total / limit),
+        }
+      : products;
   }
 
-  async getProductByCategory(id: number, languageId: number) {
-    const langisExit = await this.prisma.language.findUnique({
+  async getProductByCategory(
+    categoryId: number,
+    languageId: number,
+    pagination?: { page?: number; limit?: number }
+  ) {
+    const langExists = await this.prisma.language.findUnique({
       where: { id: languageId },
     });
 
-    if (!langisExit) {
-      throw new NotFoundException(
-        `Languafe is not found with this id ${languageId}`
-      );
+    if (!langExists) {
+      throw new NotFoundException(`Language not found with ID ${languageId}`);
     }
 
+    const { page, limit } = pagination || {};
+    const skip = page && limit ? (page - 1) * limit : undefined;
+    const take = page && limit ? limit : undefined;
+
     const products = await this.prisma.product.findMany({
-      where: { categoryId: id },
+      where: { categoryId },
+      skip,
+      take,
       include: {
-        translations: languageId ? { where: { languageId } } : true,
+        translations: { where: { languageId } },
         category: {
           include: {
-            translations: languageId ? { where: { languageId } } : true,
+            translations: { where: { languageId } },
           },
         },
       },
     });
 
-    return products.map((p) => {
+    const mapped = products.map((p) => {
       const translation = p.translations[0] || {};
       const categoryTranslation = p.category?.translations[0] || {};
 
@@ -281,5 +366,17 @@ export class ProductService {
         languageId,
       };
     });
+
+    if (page && limit) {
+      const total = await this.prisma.product.count({ where: { categoryId } });
+      return {
+        data: mapped,
+        total,
+        page,
+        lastPage: Math.ceil(total / limit),
+      };
+    }
+
+    return mapped;
   }
 }

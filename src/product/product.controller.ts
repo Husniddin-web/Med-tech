@@ -30,6 +30,7 @@ import {
   ApiTags,
   ApiBody,
   ApiConsumes,
+  ApiQuery,
 } from "@nestjs/swagger";
 import { ProductService } from "./product.service";
 
@@ -81,24 +82,42 @@ export class ProductController {
     required: true,
     example: "1",
   })
+  @ApiQuery({ name: "term", required: true, type: String })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiResponse({ status: 200, description: "Products found" })
   async searchProduct(
     @Query("term") term: string,
-    @CurrentLanguage() lang: number
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+    @CurrentLanguage() lang?: number
   ) {
-    return this.productService.searchProductByAnyField(term, lang);
+    const pagination =
+      page && limit ? { page: +page, limit: +limit } : undefined;
+    return this.productService.searchProductByAnyField(
+      term,
+      lang!,
+      pagination!
+    );
   }
 
   @UseGuards(AuthJwt, AdminGuard)
   @Get("admin")
   @ApiBearerAuth("token")
   @ApiOperation({ summary: "Get all products (Admin)" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiResponse({
     status: 200,
     description: "Successfully fetched all products",
   })
-  findAllForAdmin() {
-    return this.productService.findAllForAdmin();
+  findAllForAdmin(
+    @Query("page") page?: number,
+    @Query("limit") limit?: number
+  ) {
+    const pagination =
+      page && limit ? { page: +page, limit: +limit } : undefined;
+    return this.productService.findAllForAdmin(pagination);
   }
 
   @Get(":id")
@@ -127,13 +146,21 @@ export class ProductController {
     required: true,
     example: "1",
   })
-  @ApiOperation({ summary: "Get product by category" })
-  @ApiResponse({ status: 200, description: "Product retrieved successfully" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiOperation({ summary: "Get products by category" })
+  @ApiResponse({ status: 200, description: "Products retrieved successfully" })
   getProductByCategory(
     @Param("id") id: string,
-    @CurrentLanguage() languageId?: string
+    @CurrentLanguage() languageId: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string
   ) {
-    return this.productService.getProductByCategory(+id, +languageId!);
+    return this.productService.getProductByCategory(
+      +id,
+      +languageId,
+      page && limit ? { page: +page, limit: +limit } : undefined
+    );
   }
 
   @Get()
@@ -144,14 +171,22 @@ export class ProductController {
     required: true,
     example: "1",
   })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiResponse({
     status: 200,
     description: "Successfully retrieved all products",
   })
-  findAllForUser(@CurrentLanguage() languageId?: string) {
-    return this.productService.findAllForUser(
-      languageId ? +languageId : undefined
-    );
+  findAllForUser(
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+    @CurrentLanguage() languageId?: string
+  ) {
+    const lang = languageId ? +languageId : undefined;
+    const pagination =
+      page && limit ? { page: +page, limit: +limit } : undefined;
+
+    return this.productService.findAllForUser(lang, pagination);
   }
 
   @UseGuards(AuthJwt, AdminGuard)
