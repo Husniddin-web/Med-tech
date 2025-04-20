@@ -15,22 +15,35 @@ export class ProductService {
   constructor(private prisma: PrismaService) {}
 
   async create(dto: CreateProductDto) {
-    const languageIds = dto.translations?.map((t) => t.languageId);
+    const fixedTranslations = dto.translations?.map((t) => ({
+      ...t,
+      languageId:
+        typeof t.languageId === "string"
+          ? parseInt(t.languageId, 10)
+          : t.languageId,
+    }));
+
+    const languageIds = fixedTranslations?.map((t) => t.languageId);
+
     const existingLanguages = await this.prisma.language.findMany({
       where: { id: { in: languageIds } },
       select: { id: true },
     });
+
     const existingLanguageIds = new Set(
       existingLanguages.map((lang) => lang.id)
     );
+
     const invalidLanguageIds = languageIds!.filter(
       (id) => !existingLanguageIds.has(id)
     );
+
     if (invalidLanguageIds.length > 0) {
       throw new BadRequestException(
         `Invalid languageId(s): ${invalidLanguageIds.join(", ")}`
       );
     }
+
     const isExistCategory = await this.prisma.category.findUnique({
       where: { id: dto.categoryId },
     });
@@ -43,7 +56,7 @@ export class ProductService {
       data: {
         categoryId: dto.categoryId,
         images: dto.images!,
-        translations: { create: dto.translations },
+        translations: { create: fixedTranslations },
       },
       include: { translations: true },
     });

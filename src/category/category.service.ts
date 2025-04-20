@@ -14,7 +14,18 @@ export class CategoryService {
   constructor(private prisma: PrismaService) {}
 
   async create(dto: CreateCategoryDto) {
-    const languageIds = dto.translations?.map((t) => t["languageId"]);
+    // Convert languageId to number in each translation
+    const fixedTranslations = dto.translations?.map((t) => ({
+      ...t,
+      languageId:
+        typeof t.languageId === "string"
+          ? parseInt(t.languageId, 10)
+          : t.languageId,
+    }));
+
+    // Use the fixed translations for validation
+    const languageIds = fixedTranslations?.map((t) => t.languageId);
+
     const existingLanguages = await this.prisma.language.findMany({
       where: { id: { in: languageIds } },
       select: { id: true },
@@ -23,6 +34,7 @@ export class CategoryService {
     const existingLanguageIds = new Set(
       existingLanguages.map((lang) => lang.id)
     );
+
     const invalidLanguageIds = languageIds!.filter(
       (id) => !existingLanguageIds.has(id)
     );
@@ -32,8 +44,9 @@ export class CategoryService {
         `Invalid languageId(s): ${invalidLanguageIds.join(", ")}`
       );
     }
-    for (const translation of dto.translations) {
-      console.log(translation);
+
+    // Use fixed translations for checking existing translations
+    for (const translation of fixedTranslations) {
       const existingTranslation =
         await this.prisma.categoryTranslation.findFirst({
           where: {
@@ -53,7 +66,7 @@ export class CategoryService {
       data: {
         logo: dto.logo,
         translations: {
-          create: dto.translations,
+          create: fixedTranslations,
         },
       },
       include: { translations: true },
