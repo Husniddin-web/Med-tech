@@ -43,6 +43,7 @@ async function bootstrap() {
         "http://3.122.24.252:3002/api/docs",
         "http://localhost:3002",
         "https://med-tech-next.netlify.app",
+        "berlinmed-export.com",
       ];
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
