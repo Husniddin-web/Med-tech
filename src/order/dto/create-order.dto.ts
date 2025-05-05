@@ -20,7 +20,7 @@ export class CreateOrderDto {
   company: string;
 
   @ApiProperty({ example: "+1-202-555-0143" })
-  @IsPhoneNumber()
+  @IsString()
   phone: string;
 
   @ApiProperty({ example: "user@example.com" })
